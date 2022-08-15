@@ -120,7 +120,7 @@ def update_data_client(existing_email, **data):
                         VALUES(%s, %s);
                         """, (phone, clien_id_for_insert_to_phones_tab))
                     conn.commit()
-                elif cuantity_of_phones == 1 and len(data['phones']) > 1:
+                elif cuantity_of_phones >= 1:
                     cur.execute("""
                             DELETE FROM phones
                              WHERE client_id = %s;
@@ -129,18 +129,6 @@ def update_data_client(existing_email, **data):
                     for phone in data['phones']:
                         cur.execute("""
                             INSERT INTO phones(phone_number, client_id) VALUES(%s, %s);
-                            """, (phone, clien_id_for_insert_to_phones_tab))
-                    conn.commit()
-                elif cuantity_of_phones > 1:
-                    cur.execute("""
-                            DELETE FROM phones
-                             WHERE client_id = %s;
-                    """, (clien_id_for_insert_to_phones_tab,))
-                    conn.commit()
-                    for phone in data['phones']:
-                        cur.execute("""
-                            INSERT INTO phones(phone_number, client_id) 
-                            VALUES(%s, %s);
                             """, (phone, clien_id_for_insert_to_phones_tab))
                     conn.commit()
 
