@@ -1,12 +1,15 @@
 import psycopg2
 
+
 def open_db(f):
     def wrapped_open_db(*args, **kwargs):
         global conn
         conn = psycopg2.connect(database='clients_managing_db', user='postgres', password='')
-        f(*args, **kwargs)
+        n = f(*args, **kwargs)
         conn.close()
+        return n
     return wrapped_open_db
+
 
 @open_db
 def create_db():
@@ -24,20 +27,22 @@ def create_db():
         cur.execute("""
                 CREATE TABLE IF NOT EXISTS phones (
                     PRIMARY KEY (phone_number),
-                    phone_number VARCHAR(11)          CONSTRAINT only_digits CHECK (phone_number NOT LIKE '%[^0-9]%'),
+                    phone_number VARCHAR(11) UNIQUE   CONSTRAINT only_digits CHECK (phone_number NOT LIKE '%[^0-9]%'),
                     client_id INTEGER        NOT NULL REFERENCES clients (client_id)       
                 );
                 """)
         conn.commit()
 
-@open_db
-def delete_tabs():
-    with conn.cursor() as cur:
-        # cur.execute("""
-        #     DROP TABLE clients;
-        #     DROP TABLE phones;
-        #     """)
-        conn.commit()
+
+# @open_db
+# def delete_tabs():
+#     # with conn.cursor() as cur:
+#     #     # cur.execute("""
+#     #     #     DROP TABLE clients;
+#     #     #     DROP TABLE phones;
+#     #     #     """)
+#     #     conn.commit()
+
 
 @open_db
 def insert_new_client(name, surname, email, **phones):
@@ -57,6 +62,7 @@ def insert_new_client(name, surname, email, **phones):
             """, (item, clien_id_for_insert_to_phones_tab))
         conn.commit()
 
+
 @open_db
 def insert_phone_number_for_existing_client(email, phones):
     with conn.cursor() as cur:
@@ -70,6 +76,7 @@ def insert_phone_number_for_existing_client(email, phones):
             INSERT INTO phones(phone_number, client_id) VALUES(%s, %s);
             """, (phone, clien_id_for_insert_to_phones_tab))
         conn.commit()
+
 
 @open_db
 def update_data_client(existing_email, **data):
@@ -144,6 +151,7 @@ def update_data_client(existing_email, **data):
                             """, (phone, clien_id_for_insert_to_phones_tab))
                     conn.commit()
 
+
 @open_db
 def delete_clients_phones(email):
     with conn.cursor() as cur:
@@ -164,6 +172,7 @@ def delete_clients_phones(email):
             """, (clien_id_for_insert_to_phones_tab,))
             conn.commit()
 
+
 @open_db
 def delete_client(email):
     with conn.cursor() as cur:
@@ -181,6 +190,7 @@ def delete_client(email):
                 WHERE client_id = %s;
                 """, (clien_id_for_insert_to_phones_tab,))
         conn.commit()
+
 
 @open_db
 def find_client(**kwargs):
@@ -217,9 +227,7 @@ def find_client(**kwargs):
                         WHERE phone_number=%s;
                         """, (kwargs['phones'],))
                 show_result = cur.fetchall()[0]
-    print('Результат поиска:', show_result)
-
-
+        return show_result
 
 
 if __name__ == '__main__':
@@ -238,16 +246,20 @@ if __name__ == '__main__':
         if command == 'c':
             create_db()
         if command == 'i':
-            insert_new_client(name=input('Введите имя: '), surname=input('Введите фамилию: '), email=input('Введите email: '), phones=(input('Введите номер(а) телефона(ов): ')).split(', '))
+            insert_new_client(name=input('Введите имя: '), surname=input('Введите фамилию: '),
+                              email=input('Введите email: '),
+                              phones=(input('Введите номер(а) телефона(ов): ')).split(', '))
         if command == 't':
-            insert_phone_number_for_existing_client(email = input('Введите email клиента: '), phones=(input('Введите номер(а) телефона(ов): ')).split(', '))
+            insert_phone_number_for_existing_client(email=input('Введите email клиента: '),
+                                                    phones=(input('Введите номер(а) телефона(ов): ')).split(', '))
         if command == 'u':
             change = input('Что хотите изменить: имя, фамилию, email или телефон ? -->')
             if change == 'имя':
                 update_data_client(existing_email=input('Введите существующий email клиента: '),
                                    name=input('Введите новое имя клиента: '))
             elif change == 'фамилию':
-                update_data_client(existing_email=input('Введите существующий email клиента: '), surname=input('Введите новую фамилию клиента: '))
+                update_data_client(existing_email=input('Введите существующий email клиента: '),
+                                   surname=input('Введите новую фамилию клиента: '))
             elif change == 'email':
                 update_data_client(existing_email=input('Введите существующий email клиента: '),
                                    new_email=input('Введите новый email клиента: '))
@@ -255,24 +267,20 @@ if __name__ == '__main__':
                 update_data_client(existing_email=input('Введите существующий email клиента: '),
                                    phones=(input('Введите номер(а) телефона(ов): ')).split(', '))
         if command == 'dt':
-            delete_clients_phones(email = input('Введите email клиента: '))
+            delete_clients_phones(email=input('Введите email клиента: '))
         if command == 'dc':
-            delete_client(email = input('Введите email клиента: '))
+            delete_client(email=input('Введите email клиента: '))
         if command == 'f':
             find_data = input('По каким данным хотите найти клиента: имя, фамиля, email или телефон? -->')
             if find_data == 'имя':
-                find_client(name = input('Введите имя: '))
+                print('Результат поиска:', find_client(name=input('Введите имя: ')))
             elif find_data == 'фамилия':
-                find_client(surname = input('Введите фамилию: '))
+                print('Результат поиска:', find_client(surname=input('Введите фамилию: ')))
             elif find_data == 'email':
-                find_client(email = input('Введите email: '))
+                print('Результат поиска:', find_client(email=input('Введите email: ')))
             elif find_data == 'телефон':
-                find_client(phones = input('Введите телефон: '))
+                print('Результат поиска:', find_client(phones=input('Введите телефон: ')))
         if command == 'q':
             break
 
     # delete_tabs() # удаляет таблицы
-
-
-
-
